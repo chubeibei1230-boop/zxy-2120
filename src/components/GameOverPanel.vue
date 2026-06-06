@@ -14,6 +14,17 @@
         </div>
       </div>
 
+      <div class="game-over-stats">
+        <div class="game-over-stat">
+          <span class="stat-label">🎯 完成目标</span>
+          <span class="stat-value highlight">{{ objectivesCompleted }}</span>
+        </div>
+        <div class="game-over-stat">
+          <span class="stat-label">🔥 最佳连达</span>
+          <span class="stat-value">{{ bestStreak }} 轮</span>
+        </div>
+      </div>
+
       <div class="rank-display">
         <span class="rank-icon">{{ rankIcon }}</span>
         <span class="rank-text">{{ rankText }}</span>
@@ -50,6 +61,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { saveScore } from '@/utils/storage'
+import { useGameStore } from '@/stores/gameStore'
+import { storeToRefs } from 'pinia'
 
 const props = defineProps<{
   totalScore: number
@@ -62,8 +75,14 @@ defineEmits<{
   showScores: []
 }>()
 
+const gameStore = useGameStore()
+const { totalObjectivesCompleted, bestObjectiveStreak } = storeToRefs(gameStore)
+
 const playerName = ref('')
 const saved = ref(false)
+
+const objectivesCompleted = computed(() => totalObjectivesCompleted.value)
+const bestStreak = computed(() => bestObjectiveStreak.value)
 
 const rankIcon = computed(() => {
   if (props.totalScore >= 5000) return '👑'
@@ -89,6 +108,7 @@ async function handleSaveScore() {
     playerName: playerName.value.trim(),
     score: props.totalScore,
     rounds: props.completedRounds,
+    objectivesCompleted: objectivesCompleted.value,
     date: new Date().toLocaleString('zh-CN'),
     timestamp: Date.now()
   })

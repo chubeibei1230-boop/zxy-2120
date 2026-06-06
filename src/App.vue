@@ -5,6 +5,7 @@
     <div class="main-content">
       <div class="left-sidebar">
         <ProbabilityPanel />
+        <ObjectivesPanel />
         <BackupPanel />
       </div>
 
@@ -69,6 +70,7 @@ import { storeToRefs } from 'pinia'
 import GameHeader from '@/components/GameHeader.vue'
 import BoothPanel from '@/components/BoothPanel.vue'
 import ProbabilityPanel from '@/components/ProbabilityPanel.vue'
+import ObjectivesPanel from '@/components/ObjectivesPanel.vue'
 import SettlementPanel from '@/components/SettlementPanel.vue'
 import HistoryPanel from '@/components/HistoryPanel.vue'
 import BackupPanel from '@/components/BackupPanel.vue'

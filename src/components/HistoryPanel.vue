@@ -33,6 +33,15 @@
         <div class="history-profit" :class="{ positive: item.netProfit >= 0, negative: item.netProfit < 0 }">
           {{ item.netProfit >= 0 ? '+' : '' }}¥{{ item.netProfit }}
         </div>
+        <div class="history-objectives">
+          <span 
+            v-if="item.objectives" 
+            class="obj-badge" 
+            :class="item.objectives.filter(o => o.completed).length === item.objectives.length ? 'completed' : 'failed'"
+          >
+            🎯 {{ item.objectives.filter(o => o.completed).length }}/{{ item.objectives.length }}
+          </span>
+        </div>
         <div class="history-events">
           <span v-for="e in item.events.filter(x => x.occurred)" :key="e.type" class="event-tag">
             {{ getEventIcon(e.type) }}

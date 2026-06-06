@@ -51,6 +51,25 @@
         </div>
       </div>
 
+      <div class="objectives-section">
+        <h4>🎯 目标完成情况</h4>
+        <div v-if="completedObjectives.length === 0 && failedObjectives.length === 0" class="no-objectives">
+          暂无目标记录
+        </div>
+        <div v-else class="objectives-result">
+          <div v-for="obj in completedObjectives" :key="obj.id" class="objective-result success">
+            <span class="obj-icon">✅</span>
+            <span class="obj-title">{{ obj.title }}</span>
+            <span class="obj-reward">{{ obj.reward.description }}</span>
+          </div>
+          <div v-for="obj in failedObjectives" :key="obj.id" class="objective-result failed">
+            <span class="obj-icon">❌</span>
+            <span class="obj-title">{{ obj.title }}</span>
+            <span class="obj-reason">{{ obj.failedReason }}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="controls-section">
         <button class="btn btn-secondary" @click="$emit('undo')" :disabled="!canUndo">
           ↩️ 撤销上一轮
@@ -65,6 +84,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useGameStore } from '@/stores/gameStore'
+import { storeToRefs } from 'pinia'
 import type { RoundResult, EventType } from '@/types/game'
 
 const props = defineProps<{
@@ -78,8 +99,49 @@ defineEmits<{
   next: []
 }>()
 
+const gameStore = useGameStore()
+const { currentObjectives } = storeToRefs(gameStore)
+
 const occurredEvents = computed(() => {
   return props.roundResult?.events.filter(e => e.occurred) || []
+})
+
+interface ObjectiveResult {
+  id: string
+  title: string
+  reward: { description: string }
+  failedReason?: string
+}
+
+const completedObjectives = computed<ObjectiveResult[]>(() => {
+  if (!props.roundResult?.objectives) return []
+  return currentObjectives.value
+    .map((obj, idx) => ({
+      ...obj,
+      progress: props.roundResult!.objectives[idx]
+    }))
+    .filter(item => item.progress?.completed)
+    .map(item => ({
+      id: item.id,
+      title: item.title,
+      reward: item.reward
+    }))
+})
+
+const failedObjectives = computed<ObjectiveResult[]>(() => {
+  if (!props.roundResult?.objectives) return []
+  return currentObjectives.value
+    .map((obj, idx) => ({
+      ...obj,
+      progress: props.roundResult!.objectives[idx]
+    }))
+    .filter(item => item.progress && !item.progress.completed)
+    .map(item => ({
+      id: item.id,
+      title: item.title,
+      reward: item.reward,
+      failedReason: item.progress?.failedReason
+    }))
 })
 
 function getEventIcon(type: EventType): string {

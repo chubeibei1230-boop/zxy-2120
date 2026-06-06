@@ -17,6 +17,7 @@
           <span class="player-name">{{ score.playerName }}</span>
           <span class="score">¥{{ score.score }}</span>
           <span class="rounds">{{ score.rounds }}轮</span>
+          <span class="objectives-count" v-if="score.objectivesCompleted !== undefined">🎯{{ score.objectivesCompleted }}</span>
           <span class="date">{{ score.date }}</span>
         </div>
       </div>
