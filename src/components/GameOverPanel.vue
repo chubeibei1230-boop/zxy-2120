@@ -10,7 +10,7 @@
         </div>
         <div class="score-item">
           <span class="score-label">完成轮数</span>
-          <span class="score-value">{{ round - 1 }} / {{ maxRounds }}</span>
+          <span class="score-value">{{ completedRounds }} / {{ maxRounds }}</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ import { saveScore } from '@/utils/storage'
 
 const props = defineProps<{
   totalScore: number
-  round: number
+  completedRounds: number
   maxRounds: number
 }>()
 
@@ -88,7 +88,7 @@ async function handleSaveScore() {
   await saveScore({
     playerName: playerName.value.trim(),
     score: props.totalScore,
-    rounds: props.round - 1,
+    rounds: props.completedRounds,
     date: new Date().toLocaleString('zh-CN'),
     timestamp: Date.now()
   })

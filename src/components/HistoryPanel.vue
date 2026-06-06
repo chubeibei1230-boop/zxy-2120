@@ -27,7 +27,6 @@
         v-for="(item, index) in history"
         :key="index"
         class="history-item"
-        :class="{ active: index === historyIndex }"
         @click="$emit('viewRound', index)"
       >
         <div class="history-round">第 {{ item.round }} 轮</div>
@@ -53,7 +52,6 @@ import type { RoundResult, EventType } from '@/types/game'
 
 defineProps<{
   history: RoundResult[]
-  historyIndex: number
   canUndo: boolean
   canRedo: boolean
 }>()

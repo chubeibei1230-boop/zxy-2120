@@ -22,12 +22,12 @@
         <SettlementPanel
           :round-result="currentRoundResult"
           :can-undo="canUndo"
+          :can-next-round="canNextRound"
           @undo="handleUndo"
           @next="handleNext"
         />
         <HistoryPanel
           :history="history"
-          :history-index="historyIndex"
           :can-undo="canUndo"
           :can-redo="canRedo"
           @undo="handleUndo"
@@ -49,7 +49,7 @@
     <GameOverPanel
       v-if="gameOver"
       :total-score="totalScore"
-      :round="round"
+      :completed-rounds="completedRounds"
       :max-rounds="maxRounds"
       @restart="handleReset"
       @show-scores="showScoreboard = true"
@@ -80,13 +80,13 @@ const {
   gamePhase,
   gameOver,
   totalScore,
-  round,
   maxRounds,
   currentRoundResult,
   history,
-  historyIndex,
+  completedRounds,
   canUndo,
-  canRedo
+  canRedo,
+  canNextRound
 } = storeToRefs(gameStore)
 
 const showScoreboard = ref(false)

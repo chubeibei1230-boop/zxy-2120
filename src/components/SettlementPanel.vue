@@ -55,7 +55,7 @@
         <button class="btn btn-secondary" @click="$emit('undo')" :disabled="!canUndo">
           ↩️ 撤销上一轮
         </button>
-        <button class="btn btn-primary" @click="$emit('next')">
+        <button class="btn btn-primary" @click="$emit('next')" :disabled="!canNextRound">
           下一轮 ➡️
         </button>
       </div>
@@ -70,6 +70,7 @@ import type { RoundResult, EventType } from '@/types/game'
 const props = defineProps<{
   roundResult: RoundResult | null
   canUndo: boolean
+  canNextRound: boolean
 }>()
 
 defineEmits<{

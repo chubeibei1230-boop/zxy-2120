@@ -16,6 +16,15 @@ const createInitialProbabilities = (): EventProbability => ({
   fatigue: 0.35
 })
 
+interface GameSnapshot {
+  totalMoney: number
+  booths: Booth[]
+}
+
+function cloneBooths(booths: Booth[]): Booth[] {
+  return JSON.parse(JSON.stringify(booths))
+}
+
 export const useGameStore = defineStore('game', () => {
   const round = ref(1)
   const maxRounds = ref(10)
@@ -24,22 +33,26 @@ export const useGameStore = defineStore('game', () => {
   const currentProbabilities = ref<EventProbability>(createInitialProbabilities())
   const currentStrategy = ref<RoundStrategy | null>(null)
   const history = ref<RoundResult[]>([])
-  const historyIndex = ref(-1)
+  const redoStack = ref<RoundResult[]>([])
   const gamePhase = ref<'planning' | 'resolving' | 'settled'>('planning')
   const gameOver = ref(false)
 
-  const historySnapshot = ref<RoundResult[]>([])
-  const redoStack = ref<RoundResult[]>([])
+  const initialSnapshot: GameSnapshot = {
+    totalMoney: 1000,
+    booths: createInitialBooths()
+  }
 
   const currentRoundResult = computed(() => {
-    if (historyIndex.value >= 0 && historyIndex.value < history.value.length) {
-      return history.value[historyIndex.value]
+    if (gamePhase.value === 'settled' && history.value.length > 0) {
+      return history.value[history.value.length - 1]
     }
     return null
   })
 
-  const canUndo = computed(() => historyIndex.value >= 0)
-  const canRedo = computed(() => redoStack.value.length > 0)
+  const completedRounds = computed(() => history.value.length)
+  const canUndo = computed(() => history.value.length > 0 && gamePhase.value === 'settled')
+  const canRedo = computed(() => redoStack.value.length > 0 && gamePhase.value === 'planning')
+  const canNextRound = computed(() => gamePhase.value === 'settled')
   const totalScore = computed(() => totalMoney.value - 1000)
 
   function initStrategy() {
@@ -99,7 +112,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function resolveRound() {
-    if (!currentStrategy.value) return
+    if (!currentStrategy.value || gamePhase.value !== 'planning') return
 
     gamePhase.value = 'resolving'
 
@@ -172,11 +185,13 @@ export const useGameStore = defineStore('game', () => {
     }
 
     history.value.push(result)
-    historySnapshot.value = JSON.parse(JSON.stringify(history.value))
-    historyIndex.value = history.value.length - 1
     redoStack.value = []
 
     gamePhase.value = 'settled'
+
+    if (history.value.length >= maxRounds.value) {
+      gameOver.value = true
+    }
 
     updateProbabilities()
   }
@@ -191,7 +206,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function nextRound() {
-    if (round.value >= maxRounds.value) {
+    if (!canNextRound.value) return
+    if (history.value.length >= maxRounds.value) {
       gameOver.value = true
       return
     }
@@ -202,21 +218,38 @@ export const useGameStore = defineStore('game', () => {
 
   function undo() {
     if (!canUndo.value) return
-    redoStack.value.push(history.value.pop()!)
-    historyIndex.value--
     
-    if (historyIndex.value >= 0) {
-      const prevResult = history.value[historyIndex.value]
-      totalMoney.value -= prevResult.netProfit
+    const undoneResult = history.value.pop()!
+    redoStack.value.push(undoneResult)
+
+    if (history.value.length === 0) {
+      totalMoney.value = initialSnapshot.totalMoney
+      booths.value = cloneBooths(initialSnapshot.booths)
+    } else {
+      totalMoney.value -= undoneResult.netProfit
+
+      undoneResult.boothResults.forEach(br => {
+        const booth = booths.value.find(b => b.id === br.boothId)
+        if (booth) {
+          booth.revenue -= br.sales
+        }
+      })
+
+      const prevResult = history.value[history.value.length - 1]
       prevResult.boothResults.forEach(br => {
         const booth = booths.value.find(b => b.id === br.boothId)
         if (booth) {
           booth.stock = br.stockLeft
-          booth.revenue -= br.sales
+        }
+      })
+      prevResult.strategy.boothAllocations.forEach(alloc => {
+        const booth = booths.value.find(b => b.id === alloc.boothId)
+        if (booth) {
+          booth.staff = alloc.staff
         }
       })
     }
-    
+
     round.value = Math.max(1, round.value - 1)
     gamePhase.value = 'planning'
     initStrategy()
@@ -224,32 +257,36 @@ export const useGameStore = defineStore('game', () => {
 
   function redo() {
     if (!canRedo.value) return
+    
     const result = redoStack.value.pop()!
     history.value.push(result)
-    historyIndex.value++
-    
+
     totalMoney.value += result.netProfit
+
     result.boothResults.forEach(br => {
       const booth = booths.value.find(b => b.id === br.boothId)
       if (booth) {
         booth.stock = br.stockLeft
+        booth.staff = result.strategy.boothAllocations.find(a => a.boothId === br.boothId)?.staff ?? booth.staff
         booth.revenue += br.sales
       }
     })
-    
+
     round.value++
     gamePhase.value = 'settled'
+
+    if (history.value.length >= maxRounds.value) {
+      gameOver.value = true
+    }
   }
 
   function resetGame() {
     round.value = 1
-    totalMoney.value = 1000
-    booths.value = createInitialBooths()
+    totalMoney.value = initialSnapshot.totalMoney
+    booths.value = cloneBooths(initialSnapshot.booths)
     currentProbabilities.value = createInitialProbabilities()
     currentStrategy.value = null
     history.value = []
-    historySnapshot.value = []
-    historyIndex.value = -1
     redoStack.value = []
     gamePhase.value = 'planning'
     gameOver.value = false
@@ -266,12 +303,13 @@ export const useGameStore = defineStore('game', () => {
     currentProbabilities,
     currentStrategy,
     history,
-    historyIndex,
+    completedRounds,
     gamePhase,
     gameOver,
     currentRoundResult,
     canUndo,
     canRedo,
+    canNextRound,
     totalScore,
     initStrategy,
     updateStrategy,
